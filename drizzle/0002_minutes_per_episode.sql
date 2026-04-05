@@ -1,0 +1,1 @@
+ALTER TABLE "anime_entry" ADD COLUMN "minutes_per_episode" integer;

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 
@@ -37,7 +38,8 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 
 export function AnimeSearch({ discover }: AnimeSearchProps) {
   const { data: session, status } = useSession();
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const query = searchParams.get("q") ?? "";
   const debounced = useDebouncedValue(query, 350);
   const [results, setResults] = useState<AnimeListDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -154,8 +156,8 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
   const hint = useMemo(() => {
     if (!query.trim()) {
       return discover?.now.length || discover?.upcoming.length
-        ? "Browse this season and upcoming below, or search by title."
-        : "Type an anime title to search Jikan.";
+        ? "Browse seasonal hits and upcoming below, or use the header search."
+        : "Use the header search to find anime on Jikan.";
     }
     if (loading) return "Searching…";
     return null;
@@ -172,13 +174,13 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
     return (
       <li
         key={`${listKey}-${a.mal_id}`}
-        className="flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+        className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-zinc-900/60 shadow-lg shadow-black/20"
       >
         <Link
           href={`/anime/${a.mal_id}`}
           className="block flex-1 outline-none ring-zinc-400 focus-visible:ring-2"
         >
-          <div className="relative aspect-2/3 w-full bg-zinc-100 dark:bg-zinc-800">
+          <div className="relative aspect-2/3 w-full bg-zinc-800">
             {a.image_url ? (
               <Image
                 src={a.image_url}
@@ -195,11 +197,11 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
           </div>
           <div className="flex flex-col gap-0.5 p-2.5 sm:p-3">
             <div>
-              <p className="line-clamp-2 text-sm font-medium leading-snug text-zinc-900 sm:text-base dark:text-zinc-50">
+              <p className="line-clamp-2 text-sm font-medium leading-snug text-zinc-50 sm:text-base">
                 {a.title_english || a.title}
               </p>
               {a.title_english ? (
-                <p className="mt-0.5 line-clamp-1 text-[11px] text-zinc-500 sm:text-xs dark:text-zinc-400">
+                <p className="mt-0.5 line-clamp-1 text-[11px] text-zinc-500 sm:text-xs">
                   {a.title}
                 </p>
               ) : null}
@@ -213,7 +215,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
         </Link>
         <div className="flex flex-col gap-2 px-2.5 pb-2.5 sm:gap-3 sm:px-3 sm:pb-3">
           {existing ? (
-            <p className="text-xs text-zinc-600 sm:text-sm dark:text-zinc-300">
+            <p className="text-xs text-zinc-400 sm:text-sm">
               On your list:{" "}
               <span className="font-medium">
                 {ENTRY_STATUS_LABEL[
@@ -229,7 +231,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
                     key={s}
                     type="button"
                     disabled={pendingMal === a.mal_id}
-                    className="rounded-lg border border-zinc-200 px-2 py-1.5 text-[11px] font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50 sm:px-2.5 sm:text-xs dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-zinc-200 transition hover:bg-white/10 disabled:opacity-50 sm:px-2.5 sm:text-xs"
                     onClick={() => void add(a.mal_id, s)}
                   >
                     {ENTRY_STATUS_LABEL[s]}
@@ -249,36 +251,26 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       <div>
-        <label className="sr-only" htmlFor="anime-q">
-          Search anime
-        </label>
-        <input
-          id="anime-q"
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by title…"
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-base text-zinc-900 shadow-sm outline-none ring-zinc-400 placeholder:text-zinc-400 focus:ring-2 sm:rounded-xl sm:px-4 sm:py-3 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-        />
         {hint ? (
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            {hint}
-          </p>
+          <p className="text-sm text-zinc-500">{hint}</p>
         ) : null}
         {error ? (
-          <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="mt-2 text-sm text-red-400">{error}</p>
         ) : null}
       </div>
 
       {showDiscover ? (
         <div className="flex flex-col gap-6 sm:gap-8">
           {discover!.now.length > 0 ? (
-            <section className="flex flex-col gap-3 sm:gap-4">
+            <section
+              id="seasonal"
+              className="flex scroll-mt-28 flex-col gap-3 sm:gap-4"
+            >
               <div>
-                <h2 className="text-base font-semibold text-zinc-900 sm:text-lg dark:text-zinc-50">
-                  This season
+                <h2 className="text-base font-semibold text-zinc-50 sm:text-lg">
+                  Seasonal hits
                 </h2>
-                <p className="mt-0.5 text-xs text-zinc-500 sm:mt-1 sm:text-sm dark:text-zinc-400">
+                <p className="mt-0.5 text-xs text-zinc-500 sm:mt-1 sm:text-sm">
                   Currently airing from Jikan’s “seasons now” list.
                 </p>
               </div>
@@ -290,10 +282,10 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
           {discover!.upcoming.length > 0 ? (
             <section className="flex flex-col gap-3 sm:gap-4">
               <div>
-                <h2 className="text-base font-semibold text-zinc-900 sm:text-lg dark:text-zinc-50">
+                <h2 className="text-base font-semibold text-zinc-50 sm:text-lg">
                   Upcoming
                 </h2>
-                <p className="mt-0.5 text-xs text-zinc-500 sm:mt-1 sm:text-sm dark:text-zinc-400">
+                <p className="mt-0.5 text-xs text-zinc-500 sm:mt-1 sm:text-sm">
                   Next season announcements from Jikan.
                 </p>
               </div>
@@ -307,11 +299,11 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
 
       {searching ? (
         <section className="flex flex-col gap-3 sm:gap-4">
-          <h2 className="text-base font-semibold text-zinc-900 sm:text-lg dark:text-zinc-50">
+          <h2 className="text-base font-semibold text-zinc-50 sm:text-lg">
             Search results
           </h2>
           {results.length === 0 && !loading && !error ? (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-zinc-500">
               No matches. Try another title.
             </p>
           ) : (

@@ -6,6 +6,8 @@ import { db } from "@/db";
 import { animeEntries } from "@/db/schema";
 import { isEntryStatus } from "@/lib/entry-status";
 import { getAnimeByMalId } from "@/lib/jikan";
+import { inferMinutesPerWatchedEpisode } from "@/lib/jikan-duration";
+import { mayAddAsCompleted } from "@/lib/list-entry-rules";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -87,17 +89,41 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Anime not found on Jikan" }, { status: 404 });
   }
 
+  if (status === "completed") {
+    const check = mayAddAsCompleted(anime.status);
+    if (!check.ok) {
+      return NextResponse.json({ error: check.message }, { status: 400 });
+    }
+  }
+
+  const watchedOnCreate =
+    status === "completed" &&
+    anime.episodes != null &&
+    anime.episodes > 0
+      ? anime.episodes
+      : 0;
+
+  const minutesPerEpisode = inferMinutesPerWatchedEpisode({
+    duration: anime.duration,
+    mediaType: anime.media_type,
+    totalEpisodes: anime.episodes,
+  });
+
   const [inserted] = await db
     .insert(animeEntries)
     .values({
       userId: session.user.id,
       malId,
       status,
-      watchedEpisodes: 0,
+      watchedEpisodes: watchedOnCreate,
       totalEpisodes: anime.episodes,
       titleEn: anime.title_english,
       titleDefault: anime.title,
       imageUrl: anime.image_url,
+      genresJson: JSON.stringify(anime.genres.slice(0, 10)),
+      mediaType: anime.media_type,
+      airStatus: anime.status,
+      minutesPerEpisode,
       updatedAt: new Date(),
     })
     .returning();

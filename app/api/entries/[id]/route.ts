@@ -6,6 +6,11 @@ import { db } from "@/db";
 import { animeEntries } from "@/db/schema";
 import { isEntryStatus } from "@/lib/entry-status";
 import { getAnimeByMalId } from "@/lib/jikan";
+import { inferMinutesPerWatchedEpisode } from "@/lib/jikan-duration";
+import {
+  mayMarkCompleted,
+  shouldAutoComplete,
+} from "@/lib/list-entry-rules";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -52,6 +57,10 @@ export async function PATCH(request: Request, context: RouteContext) {
   let titleEn = row.titleEn;
   let titleDefault = row.titleDefault;
   let imageUrl = row.imageUrl;
+  let genresJson = row.genresJson;
+  let mediaType = row.mediaType;
+  let airStatus = row.airStatus;
+  let minutesPerEpisode = row.minutesPerEpisode;
 
   if (b.status !== undefined) {
     const s = String(b.status);
@@ -79,11 +88,61 @@ export async function PATCH(request: Request, context: RouteContext) {
       titleEn = anime.title_english;
       titleDefault = anime.title;
       imageUrl = anime.image_url;
+      genresJson = JSON.stringify(anime.genres.slice(0, 10));
+      mediaType = anime.media_type;
+      airStatus = anime.status;
+      minutesPerEpisode = inferMinutesPerWatchedEpisode({
+        duration: anime.duration,
+        mediaType: anime.media_type,
+        totalEpisodes: anime.episodes,
+      });
     }
   }
 
   if (totalEpisodes != null) {
     watchedEpisodes = Math.min(watchedEpisodes, totalEpisodes);
+  }
+
+  const explicitPlanToWatch = b.status === "plan_to_watch";
+
+  const autoCompleted = shouldAutoComplete({
+    airStatus,
+    watchedEpisodes,
+    totalEpisodes,
+    explicitPlanToWatch,
+  });
+
+  if (autoCompleted) {
+    nextStatus = "completed";
+  }
+
+  if (
+    nextStatus === "completed" &&
+    totalEpisodes != null &&
+    totalEpisodes > 0
+  ) {
+    watchedEpisodes = totalEpisodes;
+  }
+
+  /** User or auto is (re)asserting Watched, not just carrying an old value. */
+  const assertedCompleted =
+    b.status === "completed" ||
+    autoCompleted ||
+    (nextStatus === "completed" && row.status !== "completed");
+
+  if (nextStatus === "completed") {
+    const check = mayMarkCompleted({
+      airStatus,
+      watchedEpisodes,
+      totalEpisodes,
+    });
+    if (!check.ok) {
+      if (row.status === "completed" && !assertedCompleted) {
+        /* Legacy row: allow metadata / episode tweaks without re-validating. */
+      } else {
+        return NextResponse.json({ error: check.message }, { status: 400 });
+      }
+    }
   }
 
   const [updated] = await db
@@ -95,6 +154,10 @@ export async function PATCH(request: Request, context: RouteContext) {
       titleEn,
       titleDefault,
       imageUrl,
+      genresJson,
+      mediaType,
+      airStatus,
+      minutesPerEpisode,
       updatedAt: new Date(),
     })
     .where(eq(animeEntries.id, id))

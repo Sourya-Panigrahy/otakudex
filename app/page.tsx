@@ -1,6 +1,19 @@
+import { Suspense } from "react";
+
 import { AnimeSearch } from "@/components/anime-search";
+import { ContinueTracking } from "@/components/continue-tracking";
+import { HomeHero } from "@/components/home-hero";
 import type { AnimeListDto } from "@/lib/jikan";
 import { getSeasonsNow, getSeasonsUpcoming } from "@/lib/jikan";
+
+function SearchSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="h-10 animate-pulse rounded-xl bg-zinc-900/80" />
+      <div className="h-48 animate-pulse rounded-xl bg-zinc-900/50" />
+    </div>
+  );
+}
 
 export default async function HomePage() {
   let discover: { now: AnimeListDto[]; upcoming: AnimeListDto[] } = {
@@ -20,18 +33,15 @@ export default async function HomePage() {
     discover = { ...discover, upcoming: upcomingRes.value };
   }
 
+  const featured = discover.now[0];
+
   return (
     <>
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50">
-          Anime tracker
-        </h1>
-        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-zinc-600 sm:mt-2 dark:text-zinc-400">
-          This season, upcoming, and search via Jikan (MyAnimeList). Sign in to
-          save titles to your list.
-        </p>
-      </div>
-      <AnimeSearch discover={discover} />
+      <HomeHero featured={featured} />
+      <ContinueTracking />
+      <Suspense fallback={<SearchSkeleton />}>
+        <AnimeSearch discover={discover} />
+      </Suspense>
     </>
   );
 }

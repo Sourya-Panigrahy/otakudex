@@ -100,6 +100,13 @@ export const animeEntries = pgTable(
     titleEn: text("title_en"),
     titleDefault: text("title_default"),
     imageUrl: text("image_url"),
+    /** JSON string array of genre names from Jikan (filled on add / refresh). */
+    genresJson: text("genres_json"),
+    mediaType: text("media_type"),
+    /** Jikan `status`, e.g. "Currently Airing". */
+    airStatus: text("air_status"),
+    /** Minutes per watched episode (from Jikan duration); null → use default in stats. */
+    minutesPerEpisode: integer("minutes_per_episode"),
     updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
   },
   (t) => ({

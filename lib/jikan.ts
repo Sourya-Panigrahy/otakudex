@@ -12,6 +12,8 @@ export type AnimeDetailDto = AnimeListDto & {
   synopsis: string | null;
   url: string | null;
   status: string | null;
+  /** TV, Movie, OVA, etc. */
+  media_type: string | null;
   aired: string | null;
   duration: string | null;
   rating: string | null;
@@ -41,6 +43,7 @@ type JikanGenre = { name: string };
 type JikanAnimeFull = JikanAnimeBrief & {
   url?: string | null;
   status?: string | null;
+  type?: string | null;
   aired?: JikanAired | null;
   duration?: string | null;
   rating?: string | null;
@@ -120,6 +123,72 @@ export async function getSeasonsUpcoming(limit = 12): Promise<AnimeListDto[]> {
   return dedupeAnimeListByMalId((json.data ?? []).map(mapBrief));
 }
 
+export type CharacterCardDto = {
+  mal_id: number;
+  name: string;
+  image_url: string | null;
+  role: string | null;
+};
+
+export async function getAnimeCharacters(
+  malId: number
+): Promise<CharacterCardDto[]> {
+  if (!Number.isFinite(malId) || malId <= 0) return [];
+
+  const res = await fetch(`${JIKAN_BASE}/anime/${malId}/characters`, {
+    next: { revalidate: 3600 },
+  });
+  if (!res.ok) return [];
+
+  const json = (await res.json()) as {
+    data?: Array<{
+      character?: {
+        mal_id: number;
+        name: string;
+        images?: { jpg?: { image_url?: string | null } };
+      };
+      role?: string;
+    }>;
+  };
+
+  const out: CharacterCardDto[] = [];
+  for (const item of json.data ?? []) {
+    const c = item.character;
+    if (!c?.mal_id) continue;
+    out.push({
+      mal_id: c.mal_id,
+      name: c.name,
+      image_url: c.images?.jpg?.image_url ?? null,
+      role: item.role ?? null,
+    });
+    if (out.length >= 14) break;
+  }
+  return out;
+}
+
+export async function getAnimeRecommendations(
+  malId: number
+): Promise<AnimeListDto[]> {
+  if (!Number.isFinite(malId) || malId <= 0) return [];
+
+  const res = await fetch(`${JIKAN_BASE}/anime/${malId}/recommendations`, {
+    next: { revalidate: 3600 },
+  });
+  if (!res.ok) return [];
+
+  const json = (await res.json()) as {
+    data?: Array<{
+      entry?: JikanAnimeBrief;
+    }>;
+  };
+
+  const briefs: JikanAnimeBrief[] = [];
+  for (const item of json.data ?? []) {
+    if (item.entry) briefs.push(item.entry);
+  }
+  return dedupeAnimeListByMalId(briefs.map(mapBrief)).slice(0, 12);
+}
+
 export async function getAnimeByMalId(
   malId: number
 ): Promise<AnimeDetailDto | null> {
@@ -142,6 +211,7 @@ export async function getAnimeByMalId(
     synopsis: d.synopsis ?? null,
     url: d.url ?? null,
     status: d.status ?? null,
+    media_type: d.type ?? null,
     aired: d.aired?.string ?? null,
     duration: d.duration ?? null,
     rating: d.rating ?? null,

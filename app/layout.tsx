@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 
-import { SiteHeader } from "@/components/site-header";
+import { Footer } from "@/components/footer";
+import { Header } from "@/components/header";
+
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -16,10 +19,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Anime tracker",
+  title: "Otaku Dex",
   description:
     "Search Jikan, track plan to watch / watching / watched, and episode progress.",
 };
+
+function HeaderFallback() {
+  return (
+    <div
+      className="h-[72px] border-b border-white/10 bg-black/15 backdrop-blur-2xl"
+      aria-hidden
+    />
+  );
+}
 
 export default function RootLayout({
   children,
@@ -29,16 +41,19 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col overflow-x-hidden bg-zinc-50 font-sans text-zinc-900 dark:bg-black dark:text-zinc-50">
+      <body className="flex min-h-full flex-col overflow-x-hidden bg-zinc-950 font-sans text-zinc-100">
         <Providers>
-          <SiteHeader />
+          <Suspense fallback={<HeaderFallback />}>
+            <Header />
+          </Suspense>
           <main className="flex-1">
-            <div className="mx-auto w-full max-w-screen-2xl px-3 py-5 sm:px-5 sm:py-7 lg:px-8">
+            <div className="mx-auto w-full max-w-[1920px] px-4 py-5 sm:px-6 sm:py-7 lg:px-10 xl:px-12">
               {children}
             </div>
           </main>
+          <Footer />
         </Providers>
       </body>
     </html>
