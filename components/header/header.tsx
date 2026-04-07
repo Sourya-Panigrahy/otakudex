@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Bell, Search } from "lucide-react";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { useLoginModal } from "@/components/login-modal";
+import { signOut, useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -19,6 +20,7 @@ function useDebouncedCallback(
 }
 
 export function Header() {
+  const { openLoginModal } = useLoginModal();
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -85,7 +87,7 @@ export function Header() {
         <button
           type="button"
           className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-400"
-          onClick={() => signIn("github")}
+          onClick={openLoginModal}
         >
           Join
         </button>

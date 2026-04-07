@@ -78,6 +78,7 @@ export async function ContinueTracking() {
                       fill
                       className="object-cover"
                       sizes="56px"
+                      priority={i === 0}
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-[10px] text-zinc-600">

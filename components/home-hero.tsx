@@ -137,7 +137,6 @@ export function HomeHero({ featured }: HomeHeroProps) {
               className="object-cover object-top"
               sizes="100vw"
               priority
-              loading="eager"
             />
           </div>
           <div

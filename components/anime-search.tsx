@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { useLoginModal } from "@/components/login-modal";
+import { useSession } from "next-auth/react";
 
 import type { AnimeListDto } from "@/lib/jikan";
 import {
@@ -37,6 +38,7 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 }
 
 export function AnimeSearch({ discover }: AnimeSearchProps) {
+  const { openLoginModal } = useLoginModal();
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const query = searchParams.get("q") ?? "";
@@ -110,7 +112,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
 
   const add = async (malId: number, statusChoice: EntryStatus) => {
     if (!signedIn) {
-      void signIn("github");
+      openLoginModal();
       return;
     }
     setPendingMal(malId);
@@ -169,8 +171,18 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
     discover &&
     (discover.now.length > 0 || discover.upcoming.length > 0);
 
-  const renderCard = (a: AnimeListDto, listKey: string) => {
+  const renderCard = (
+    a: AnimeListDto,
+    listKey: string,
+    index: number
+  ) => {
     const existing = byMalId.get(a.mal_id);
+    const nowLen = discover?.now.length ?? 0;
+    const lcpBoost =
+      (listKey === "now" && index < 6) ||
+      (listKey === "search" && searching && index < 6) ||
+      (listKey === "up" && nowLen === 0 && index < 6);
+
     return (
       <li
         key={`${listKey}-${a.mal_id}`}
@@ -188,6 +200,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
                 fill
                 className="object-cover"
                 sizes="(max-width: 399px) 100vw, (max-width: 639px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 16vw"
+                priority={lcpBoost}
               />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-zinc-400">
@@ -275,7 +288,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
                 </p>
               </div>
               <ul className={gridClass}>
-                {discover!.now.map((a) => renderCard(a, "now"))}
+                {discover!.now.map((a, i) => renderCard(a, "now", i))}
               </ul>
             </section>
           ) : null}
@@ -290,7 +303,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
                 </p>
               </div>
               <ul className={gridClass}>
-                {discover!.upcoming.map((a) => renderCard(a, "up"))}
+                {discover!.upcoming.map((a, i) => renderCard(a, "up", i))}
               </ul>
             </section>
           ) : null}
@@ -308,7 +321,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
             </p>
           ) : (
             <ul className={gridClass}>
-              {results.map((a) => renderCard(a, "search"))}
+              {results.map((a, i) => renderCard(a, "search", i))}
             </ul>
           )}
         </section>

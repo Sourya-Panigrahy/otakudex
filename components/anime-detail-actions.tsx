@@ -2,7 +2,8 @@
 
 import { Check, ChevronDown, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { useLoginModal } from "@/components/login-modal";
+import { useSession } from "next-auth/react";
 
 import { EpisodeWatchedInline } from "@/components/episode-watched-inline";
 import {
@@ -45,6 +46,7 @@ export function AnimeDetailActions({
   jikanEpisodeCount,
   jikanBroadcastStatus,
 }: Props) {
+  const { openLoginModal } = useLoginModal();
   const { data: session, status } = useSession();
   const [existing, setExisting] = useState<EntryDto | null>(
     initialEntry
@@ -105,7 +107,7 @@ export function AnimeDetailActions({
 
   const add = async (statusChoice: EntryStatus) => {
     if (!signedIn) {
-      void signIn("github");
+      openLoginModal();
       return;
     }
     setFormError(null);

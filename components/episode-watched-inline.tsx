@@ -7,8 +7,8 @@ type Props = {
   totalEpisodes: number | null;
   disabled?: boolean;
   onCommit: (next: number) => void | Promise<void>;
-  /** Larger text on library cards */
-  size?: "md" | "lg";
+  /** lg = library default; sm = dense grid */
+  size?: "sm" | "md" | "lg";
 };
 
 export function EpisodeWatchedInline({
@@ -78,13 +78,19 @@ export function EpisodeWatchedInline({
   };
 
   const textSize =
-    size === "lg" ? "text-base font-semibold" : "text-base font-medium";
+    size === "lg"
+      ? "text-base font-semibold"
+      : size === "sm"
+        ? "text-sm font-semibold"
+        : "text-base font-medium";
   const spinHide =
     "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
   const inputClass =
     size === "lg"
-      ? `h-8 min-w-[3.25rem] max-w-[5rem] rounded-md border border-sky-500/50 bg-zinc-900 px-1.5 text-center text-base font-semibold tabular-nums text-zinc-50 outline-none focus:ring-1 focus:ring-sky-500/60 ${spinHide}`
-      : `h-8 min-w-14 max-w-[5rem] rounded-md border border-cyan-500/40 bg-zinc-950 px-1.5 text-center text-sm font-semibold tabular-nums text-zinc-100 outline-none focus:ring-1 focus:ring-cyan-500/40 ${spinHide}`;
+      ? `h-8 min-w-[3.25rem] max-w-[5rem] rounded-md border border-input bg-background px-1.5 text-center text-base font-semibold tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring ${spinHide}`
+      : size === "sm"
+        ? `h-7 min-w-[2.5rem] max-w-[4rem] rounded border border-input bg-background px-1 text-center text-sm font-semibold tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring ${spinHide}`
+        : `h-8 min-w-14 max-w-[5rem] rounded-md border border-input bg-background px-1.5 text-center text-sm font-semibold tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring ${spinHide}`;
 
   if (editing) {
     return (
@@ -112,7 +118,7 @@ export function EpisodeWatchedInline({
             }
           }}
         />
-        <span className="text-zinc-400">/</span>
+        <span className="text-muted-foreground">/</span>
         <span>{totalEpisodes ?? "—"}</span>
       </span>
     );
@@ -123,13 +129,13 @@ export function EpisodeWatchedInline({
       type="button"
       disabled={disabled}
       title="Click to type episode count"
-      className={`inline-flex flex-wrap items-center gap-1 tabular-nums ${textSize} text-zinc-50 transition hover:text-white disabled:opacity-40`}
+      className={`inline-flex flex-wrap items-center gap-1 tabular-nums ${textSize} text-foreground transition hover:text-primary disabled:opacity-40`}
       onClick={start}
     >
-      <span className="cursor-text border-b border-dotted border-zinc-500 hover:border-sky-400/80">
+      <span className="cursor-text border-b border-dotted border-muted-foreground/60 hover:border-primary/80">
         {watchedEpisodes}
       </span>
-      <span className="text-zinc-500">/</span>
+      <span className="text-muted-foreground">/</span>
       <span>{totalEpisodes ?? "—"}</span>
     </button>
   );
