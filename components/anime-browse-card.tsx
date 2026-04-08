@@ -75,8 +75,15 @@ export function AnimeBrowseCard({
             </span>
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-1.5 min-[400px]:grid-cols-3 sm:flex sm:flex-wrap sm:gap-2">
-            {(["plan_to_watch", "watching", "completed"] as const).map((s) => (
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {(
+              [
+                "plan_to_watch",
+                "watching",
+                "on_hold",
+                "completed",
+              ] as const
+            ).map((s) => (
               <button
                 key={s}
                 type="button"

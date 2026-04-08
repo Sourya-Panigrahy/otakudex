@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { Check, ChevronDown, Pause, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLoginModal } from "@/components/login-modal";
 import { useSession } from "next-auth/react";
@@ -15,6 +15,7 @@ import { isCurrentlyAiring } from "@/lib/list-entry-rules";
 const STATUS_ORDER: EntryStatus[] = [
   "plan_to_watch",
   "watching",
+  "on_hold",
   "completed",
 ];
 
@@ -330,6 +331,18 @@ export function AnimeDetailActions({
         </button>
         <button
           type="button"
+          disabled={pending}
+          className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-zinc-800/90 px-4 py-3 text-left text-sm font-medium text-zinc-100 transition hover:bg-zinc-800 disabled:opacity-50"
+          onClick={() => void add("on_hold")}
+        >
+          <span className="flex items-center gap-2">
+            <Pause className="h-4 w-4 text-amber-400" aria-hidden />
+            Add to On hold
+          </span>
+          <span className="tabular-nums text-zinc-500">{epBadge}</span>
+        </button>
+        <button
+          type="button"
           disabled={pending || addCompletedDisabled}
           title={
             addCompletedDisabled
@@ -347,8 +360,8 @@ export function AnimeDetailActions({
         </button>
         {addCompletedDisabled ? (
           <p className="text-xs text-zinc-500">
-            This title is still airing — add it as Watching or Plan to Watch
-            instead.
+            This title is still airing — add it as Watching, On hold, or Plan
+            to watch instead.
           </p>
         ) : null}
       </div>

@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { RefreshCw, Tv } from "lucide-react";
 
 import { EpisodeWatchedInline } from "@/components/episode-watched-inline";
+import { MalImportCard } from "@/components/mal-import-card";
 import {
   Card,
   CardContent,
@@ -44,6 +45,7 @@ const TAB_ORDER: LibraryTab[] = [
   "overview",
   "plan_to_watch",
   "watching",
+  "on_hold",
   "completed",
 ];
 
@@ -52,6 +54,7 @@ const TAB_LABEL: Record<LibraryTab, string> = {
   overview: "Overview",
   plan_to_watch: "Plan to Watch",
   watching: "Watching",
+  on_hold: "On hold",
   completed: "Watched",
 };
 
@@ -265,9 +268,11 @@ export function LibraryView() {
 
       {tab === "overview" ? (
         <div className="space-y-6">
+          <MalImportCard onImported={() => void load()} />
           {entries.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Add anime from Search to see watch time totals here.
+              Add anime from Search or import a MyAnimeList export above to see
+              watch time totals here.
             </p>
           ) : (
             <>

@@ -1,6 +1,7 @@
 export const ENTRY_STATUSES = [
   "plan_to_watch",
   "watching",
+  "on_hold",
   "completed",
 ] as const;
 
@@ -13,5 +14,6 @@ export function isEntryStatus(s: string): s is EntryStatus {
 export const ENTRY_STATUS_LABEL: Record<EntryStatus, string> = {
   plan_to_watch: "Plan to watch",
   watching: "Watching",
+  on_hold: "On hold",
   completed: "Watched",
 };

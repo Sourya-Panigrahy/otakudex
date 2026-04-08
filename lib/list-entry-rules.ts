@@ -11,7 +11,7 @@ export function mayAddAsCompleted(airStatus: string | null):
     return {
       ok: false,
       message:
-        "Still-airing shows cannot be added as Watched. Add as Watching or Plan to Watch.",
+        "Still-airing shows cannot be added as Watched. Add as Watching, On hold, or Plan to watch.",
     };
   }
   return { ok: true };

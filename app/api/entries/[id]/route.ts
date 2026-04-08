@@ -103,7 +103,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     watchedEpisodes = Math.min(watchedEpisodes, totalEpisodes);
   }
 
-  const explicitPlanToWatch = b.status === "plan_to_watch";
+  const explicitPlanToWatch =
+    b.status === "plan_to_watch" ||
+    (b.status === undefined && row.status === "plan_to_watch");
 
   const autoCompleted = shouldAutoComplete({
     airStatus,
