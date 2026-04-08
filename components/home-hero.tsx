@@ -119,10 +119,6 @@ export function HomeHero({ featured }: HomeHeroProps) {
   }
 
   const displayTitle = featured.title_english || featured.title;
-  const nativeTitle =
-    featured.title_english && featured.title !== featured.title_english
-      ? featured.title
-      : null;
   const ep = featured.episodes;
 
   return (
@@ -163,11 +159,6 @@ export function HomeHero({ featured }: HomeHeroProps) {
                   ) : null}
                 </p>
                 <HeroTitleBlock title={displayTitle} />
-                {nativeTitle ? (
-                  <p className="mt-3 max-w-2xl text-sm font-normal normal-case leading-snug text-zinc-300 sm:mt-4 sm:text-base">
-                    {nativeTitle}
-                  </p>
-                ) : null}
                 <div className="mt-8 flex flex-wrap gap-3 sm:mt-10">
                   <Link
                     href={`/anime/${featured.mal_id}`}

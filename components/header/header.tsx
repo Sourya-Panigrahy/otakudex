@@ -2,51 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Bell, Search } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useLoginModal } from "@/components/login-modal";
 import { signOut, useSession } from "next-auth/react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
-function useDebouncedCallback(
-  fn: (value: string) => void,
-  delay: number
-): (value: string) => void {
-  const t = useRef<ReturnType<typeof setTimeout> | null>(null);
-  return (value: string) => {
-    if (t.current) clearTimeout(t.current);
-    t.current = setTimeout(() => fn(value), delay);
-  };
-}
+import { HeaderSearch } from "@/components/header/header-search";
 
 export function Header() {
   const { openLoginModal } = useLoginModal();
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const qParam = searchParams.get("q") ?? "";
-
-  const [value, setValue] = useState(qParam);
-
-  useEffect(() => {
-    setValue(qParam);
-  }, [qParam]);
-
-  const pushQueryDebounced = useDebouncedCallback((next: string) => {
-    const trimmed = next.trim();
-    router.push(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : "/");
-  }, 350);
-
-  const onSearchChange = (next: string) => {
-    setValue(next);
-    const trimmed = next.trim();
-    if (pathname === "/") {
-      router.replace(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : "/");
-    } else {
-      pushQueryDebounced(next);
-    }
-  };
 
   const browseActive = pathname === "/";
   const listActive = pathname === "/library";
@@ -145,20 +111,7 @@ export function Header() {
         </nav>
 
         <div className="min-w-0">
-          <label className="relative block w-full">
-            <span className="sr-only">Search titles</span>
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={value}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search titles…"
-              className="w-full rounded-full border border-white/15 bg-black/35 py-2 pl-9 pr-4 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none ring-cyan-500/40 backdrop-blur-md focus:border-cyan-500/40 focus:ring-2"
-            />
-          </label>
+          <HeaderSearch />
         </div>
 
         <div className="hidden lg:block">{actions}</div>

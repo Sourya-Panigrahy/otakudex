@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
@@ -106,12 +106,9 @@ export default async function AnimeDetailPage(props: PageProps) {
   return (
     <div className="w-full max-w-6xl pb-8">
       <p className="mb-6 text-sm">
-        <Link
-          href="/"
-          className="text-zinc-500 transition hover:text-cyan-400"
-        >
-          ← Back
-        </Link>
+        <BackLink href="/" className="text-zinc-500 hover:text-cyan-400">
+          Back
+        </BackLink>
       </p>
 
       <section className="grid gap-8 lg:grid-cols-[minmax(0,280px)_1fr] lg:items-start">

@@ -52,11 +52,35 @@ type JikanAnimeFull = JikanAnimeBrief & {
 };
 
 type JikanListResponse = { data: JikanAnimeBrief[] };
+type JikanPaginatedListResponse = {
+  pagination?: {
+    last_visible_page?: number;
+    has_next_page?: boolean;
+    current_page?: number;
+  };
+  data?: JikanAnimeBrief[];
+};
 type JikanSingleResponse = { data: JikanAnimeFull };
 
+/** Prefer CDN host so Next/Image fetches are faster than myanimelist.net (fewer optimizer timeouts). */
+function normalizeMalImageUrl(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.hostname === "myanimelist.net" && u.pathname.startsWith("/images/")) {
+      u.hostname = "cdn.myanimelist.net";
+      return u.toString();
+    }
+  } catch {
+    return url;
+  }
+  return url;
+}
+
 function mapBrief(a: JikanAnimeBrief): AnimeListDto {
-  const imageUrl =
-    a.images?.jpg?.large_image_url ?? a.images?.jpg?.image_url ?? null;
+  const imageUrl = normalizeMalImageUrl(
+    a.images?.jpg?.large_image_url ?? a.images?.jpg?.image_url ?? null
+  );
   return {
     mal_id: a.mal_id,
     title: a.title,
@@ -95,32 +119,82 @@ export async function searchAnime(query: string): Promise<AnimeListDto[]> {
   return dedupeAnimeListByMalId((json.data ?? []).map(mapBrief));
 }
 
-/** Currently airing this season (Jikan “seasons now”). */
-export async function getSeasonsNow(limit = 12): Promise<AnimeListDto[]> {
-  const url = new URL(`${JIKAN_BASE}/seasons/now`);
-  url.searchParams.set("limit", String(Math.min(limit, 25)));
+export type SeasonsBrowseKind = "now" | "upcoming";
+
+export type SeasonsBrowseResult = {
+  data: AnimeListDto[];
+  currentPage: number;
+  hasNextPage: boolean;
+  lastPage: number;
+};
+
+/**
+ * Paginated seasons list (Jikan `seasons/now` or `seasons/upcoming`).
+ * `page` and `limit` are clamped (limit max 25 per Jikan).
+ */
+export async function getSeasonsBrowse(
+  kind: SeasonsBrowseKind,
+  page: number,
+  limit = 25
+): Promise<SeasonsBrowseResult> {
+  const safePage = Math.max(1, Math.floor(page) || 1);
+  const safeLimit = Math.min(25, Math.max(1, Math.floor(limit) || 25));
+  const path = kind === "now" ? "seasons/now" : "seasons/upcoming";
+  const url = new URL(`${JIKAN_BASE}/${path}`);
+  url.searchParams.set("page", String(safePage));
+  url.searchParams.set("limit", String(safeLimit));
 
   const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
   if (!res.ok) {
-    throw new Error(`Jikan seasons/now failed: ${res.status}`);
+    throw new Error(`Jikan ${path} failed: ${res.status}`);
   }
 
-  const json = (await res.json()) as JikanListResponse;
-  return dedupeAnimeListByMalId((json.data ?? []).map(mapBrief));
+  const json = (await res.json()) as JikanPaginatedListResponse;
+  const p = json.pagination;
+  const data = dedupeAnimeListByMalId((json.data ?? []).map(mapBrief));
+  const currentPage = p?.current_page ?? safePage;
+  const lastPage = Math.max(1, p?.last_visible_page ?? currentPage);
+  const hasNextPage = Boolean(p?.has_next_page);
+
+  return {
+    data,
+    currentPage,
+    hasNextPage,
+    lastPage,
+  };
 }
 
-/** Next season’s announced titles (Jikan “seasons upcoming”). */
+/**
+ * Jikan sometimes returns exactly 11 rows on page 1 while `hasNextPage` is
+ * true. Appending the first item from page 2 fills a 6×2 grid on the home
+ * teaser (otherwise the last cell looks empty).
+ */
+export async function padSeasonFirstPageIfEleven(
+  kind: SeasonsBrowseKind,
+  data: AnimeListDto[],
+  hasNextPage: boolean
+): Promise<AnimeListDto[]> {
+  if (data.length !== 11 || !hasNextPage) return data;
+  const peek = await getSeasonsBrowse(kind, 2, 1);
+  const extra = peek.data[0];
+  if (!extra || data.some((d) => d.mal_id === extra.mal_id)) return data;
+  return [...data, extra];
+}
+
+/** Currently airing this season (Jikan “seasons now”), first page only. */
+export async function getSeasonsNow(limit = 12): Promise<AnimeListDto[]> {
+  const cap = Math.min(limit, 25);
+  const { data, hasNextPage } = await getSeasonsBrowse("now", 1, cap);
+  const padded = await padSeasonFirstPageIfEleven("now", data, hasNextPage);
+  return padded.slice(0, cap);
+}
+
+/** Next season’s announced titles (Jikan “seasons upcoming”), first page only. */
 export async function getSeasonsUpcoming(limit = 12): Promise<AnimeListDto[]> {
-  const url = new URL(`${JIKAN_BASE}/seasons/upcoming`);
-  url.searchParams.set("limit", String(Math.min(limit, 25)));
-
-  const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
-  if (!res.ok) {
-    throw new Error(`Jikan seasons/upcoming failed: ${res.status}`);
-  }
-
-  const json = (await res.json()) as JikanListResponse;
-  return dedupeAnimeListByMalId((json.data ?? []).map(mapBrief));
+  const cap = Math.min(limit, 25);
+  const { data, hasNextPage } = await getSeasonsBrowse("upcoming", 1, cap);
+  const padded = await padSeasonFirstPageIfEleven("upcoming", data, hasNextPage);
+  return padded.slice(0, cap);
 }
 
 export type CharacterCardDto = {
@@ -158,7 +232,7 @@ export async function getAnimeCharacters(
     out.push({
       mal_id: c.mal_id,
       name: c.name,
-      image_url: c.images?.jpg?.image_url ?? null,
+      image_url: normalizeMalImageUrl(c.images?.jpg?.image_url ?? null),
       role: item.role ?? null,
     });
     if (out.length >= 14) break;

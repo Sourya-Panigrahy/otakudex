@@ -1,23 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLoginModal } from "@/components/login-modal";
 import { useSession } from "next-auth/react";
 
-import type { AnimeListDto } from "@/lib/jikan";
 import {
-  ENTRY_STATUS_LABEL,
-  type EntryStatus,
-} from "@/lib/entry-status";
-
-type EntryRow = {
-  id: string;
-  malId: number;
-  status: string;
-};
+  AnimeBrowseCard,
+  type ListEntryRow,
+} from "@/components/anime-browse-card";
+import { ANIME_BROWSE_GRID_CLASS } from "@/components/anime-browse-grid";
+import type { AnimeListDto } from "@/lib/jikan";
+import type { EntryStatus } from "@/lib/entry-status";
 
 export type AnimeSearchDiscover = {
   now: AnimeListDto[];
@@ -46,7 +41,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
   const [results, setResults] = useState<AnimeListDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [byMalId, setByMalId] = useState<Map<number, EntryRow>>(new Map());
+  const [byMalId, setByMalId] = useState<Map<number, ListEntryRow>>(new Map());
   const [pendingMal, setPendingMal] = useState<number | null>(null);
 
   const loadEntries = useCallback(async () => {
@@ -63,7 +58,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
         status: string;
       }>;
     };
-    const m = new Map<number, EntryRow>();
+    const m = new Map<number, ListEntryRow>();
     for (const e of json.entries) {
       m.set(e.malId, { id: e.id, malId: e.malId, status: e.status });
     }
@@ -159,7 +154,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
     if (!query.trim()) {
       return discover?.now.length || discover?.upcoming.length
         ? "Browse seasonal hits and upcoming below, or use the header search."
-        : "Use the header search to find anime on Jikan.";
+        : "Use the header search to find titles.";
     }
     if (loading) return "Searching…";
     return null;
@@ -171,95 +166,12 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
     discover &&
     (discover.now.length > 0 || discover.upcoming.length > 0);
 
-  const renderCard = (
-    a: AnimeListDto,
-    listKey: string,
-    index: number
-  ) => {
-    const existing = byMalId.get(a.mal_id);
-    const nowLen = discover?.now.length ?? 0;
-    const lcpBoost =
-      (listKey === "now" && index < 6) ||
-      (listKey === "search" && searching && index < 6) ||
-      (listKey === "up" && nowLen === 0 && index < 6);
+  const nowLen = discover?.now.length ?? 0;
 
-    return (
-      <li
-        key={`${listKey}-${a.mal_id}`}
-        className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-zinc-900/60 shadow-lg shadow-black/20"
-      >
-        <Link
-          href={`/anime/${a.mal_id}`}
-          className="block flex-1 outline-none ring-zinc-400 focus-visible:ring-2"
-        >
-          <div className="relative aspect-2/3 w-full bg-zinc-800">
-            {a.image_url ? (
-              <Image
-                src={a.image_url}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="(max-width: 399px) 100vw, (max-width: 639px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 16vw"
-                priority={lcpBoost}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-zinc-400">
-                No image
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col gap-0.5 p-2.5 sm:p-3">
-            <div>
-              <p className="line-clamp-2 text-sm font-medium leading-snug text-zinc-50 sm:text-base">
-                {a.title_english || a.title}
-              </p>
-              {a.title_english ? (
-                <p className="mt-0.5 line-clamp-1 text-[11px] text-zinc-500 sm:text-xs">
-                  {a.title}
-                </p>
-              ) : null}
-              {a.episodes != null ? (
-                <p className="mt-0.5 text-[11px] text-zinc-500 sm:text-xs">
-                  {a.episodes} eps
-                </p>
-              ) : null}
-            </div>
-          </div>
-        </Link>
-        <div className="flex flex-col gap-2 px-2.5 pb-2.5 sm:gap-3 sm:px-3 sm:pb-3">
-          {existing ? (
-            <p className="text-xs text-zinc-400 sm:text-sm">
-              On your list:{" "}
-              <span className="font-medium">
-                {ENTRY_STATUS_LABEL[
-                  existing.status as keyof typeof ENTRY_STATUS_LABEL
-                ] ?? existing.status}
-              </span>
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-1.5 min-[400px]:grid-cols-3 sm:flex sm:flex-wrap sm:gap-2">
-              {(["plan_to_watch", "watching", "completed"] as const).map(
-                (s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    disabled={pendingMal === a.mal_id}
-                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[11px] font-medium text-zinc-200 transition hover:bg-white/10 disabled:opacity-50 sm:px-2.5 sm:text-xs"
-                    onClick={() => void add(a.mal_id, s)}
-                  >
-                    {ENTRY_STATUS_LABEL[s]}
-                  </button>
-                )
-              )}
-            </div>
-          )}
-        </div>
-      </li>
-    );
-  };
-
-  const gridClass =
-    "grid grid-cols-1 gap-2.5 min-[400px]:grid-cols-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6";
+  const priorityFor = (listKey: string, index: number) =>
+    (listKey === "now" && index < 6) ||
+    (listKey === "search" && searching && index < 6) ||
+    (listKey === "up" && nowLen === 0 && index < 6);
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
@@ -279,31 +191,59 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
               id="seasonal"
               className="flex scroll-mt-28 flex-col gap-3 sm:gap-4"
             >
-              <div>
-                <h2 className="text-base font-semibold text-zinc-50 sm:text-lg">
-                  Seasonal hits
-                </h2>
-                <p className="mt-0.5 text-xs text-zinc-500 sm:mt-1 sm:text-sm">
-                  Currently airing from Jikan’s “seasons now” list.
-                </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-zinc-50 sm:text-lg">
+                    Seasonal hits
+                  </h2>
+                </div>
+                <Link
+                  href="/discover/seasonal"
+                  className="shrink-0 text-sm font-medium text-cyan-400 transition hover:text-cyan-300"
+                >
+                  View all
+                </Link>
               </div>
-              <ul className={gridClass}>
-                {discover!.now.map((a, i) => renderCard(a, "now", i))}
+              <ul className={ANIME_BROWSE_GRID_CLASS}>
+                {discover!.now.map((a, i) => (
+                  <AnimeBrowseCard
+                    key={`now-${a.mal_id}`}
+                    anime={a}
+                    priority={priorityFor("now", i)}
+                    existing={byMalId.get(a.mal_id)}
+                    isPending={pendingMal === a.mal_id}
+                    onAdd={add}
+                  />
+                ))}
               </ul>
             </section>
           ) : null}
           {discover!.upcoming.length > 0 ? (
             <section className="flex flex-col gap-3 sm:gap-4">
-              <div>
-                <h2 className="text-base font-semibold text-zinc-50 sm:text-lg">
-                  Upcoming
-                </h2>
-                <p className="mt-0.5 text-xs text-zinc-500 sm:mt-1 sm:text-sm">
-                  Next season announcements from Jikan.
-                </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-zinc-50 sm:text-lg">
+                    Upcoming
+                  </h2>
+                </div>
+                <Link
+                  href="/discover/upcoming"
+                  className="shrink-0 text-sm font-medium text-cyan-400 transition hover:text-cyan-300"
+                >
+                  View all
+                </Link>
               </div>
-              <ul className={gridClass}>
-                {discover!.upcoming.map((a, i) => renderCard(a, "up", i))}
+              <ul className={ANIME_BROWSE_GRID_CLASS}>
+                {discover!.upcoming.map((a, i) => (
+                  <AnimeBrowseCard
+                    key={`up-${a.mal_id}`}
+                    anime={a}
+                    priority={priorityFor("up", i)}
+                    existing={byMalId.get(a.mal_id)}
+                    isPending={pendingMal === a.mal_id}
+                    onAdd={add}
+                  />
+                ))}
               </ul>
             </section>
           ) : null}
@@ -320,8 +260,17 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
               No matches. Try another title.
             </p>
           ) : (
-            <ul className={gridClass}>
-              {results.map((a, i) => renderCard(a, "search", i))}
+            <ul className={ANIME_BROWSE_GRID_CLASS}>
+              {results.map((a, i) => (
+                <AnimeBrowseCard
+                  key={`search-${a.mal_id}`}
+                  anime={a}
+                  priority={priorityFor("search", i)}
+                  existing={byMalId.get(a.mal_id)}
+                  isPending={pendingMal === a.mal_id}
+                  onAdd={add}
+                />
+              ))}
             </ul>
           )}
         </section>

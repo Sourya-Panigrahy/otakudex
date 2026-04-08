@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Otaku Dex
+
+Otaku Dex is a clean anime tracker built with Next.js.
+
+I started this just for fun because:
+- TV Time felt laggy.
+- MyAnimeList felt too crowded with too many things.
+
+So I wanted something faster, focused, and simple to use for daily tracking.
+
+## Features
+
+- Search anime from Jikan (MyAnimeList unofficial API).
+- Browse seasonal lists (`Now Airing` and `Upcoming`).
+- View anime details, characters, and recommendations.
+- Track watch status (plan to watch, watching, completed, etc.).
+- Update episode progress.
+- Sign in with OAuth (Google and/or GitHub) using NextAuth.
+- PWA support (installable app with offline page and service worker).
+
+## Tech Stack
+
+- Next.js (App Router) + React + TypeScript
+- Tailwind CSS
+- NextAuth
+- Drizzle ORM
+- Neon/PostgreSQL
+- Jikan API
+- Serwist (PWA)
 
 ## Getting Started
 
-First, run the development server:
+### 1) Install dependencies
+
+```bash
+npm install
+```
+
+### 2) Create environment variables
+
+Create a `.env` file in the project root and add:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres
+AUTH_SECRET=your-random-secret
+
+# Optional OAuth providers
+AUTH_GITHUB_ID=
+AUTH_GITHUB_SECRET=
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
+
+# Optional: set to 1 for auth debug logs
+AUTH_DEBUG=0
+```
+
+At least one OAuth provider is recommended for login.
+
+### 3) Run database setup
+
+```bash
+npm run db:generate
+npm run db:push
+```
+
+### 4) Start development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` - start dev server
+- `npm run build` - production build
+- `npm run start` - run production server
+- `npm run lint` - run ESLint
+- `npm run db:generate` - generate Drizzle migrations
+- `npm run db:migrate` - run migrations
+- `npm run db:push` - push schema to database
+- `npm run pwa:icons` - generate PWA icons
 
-## Learn More
+## Why This Exists
 
-To learn more about Next.js, take a look at the following resources:
+This project is intentionally personal and lightweight.
+It exists because I wanted:
+- better performance than TV Time,
+- less clutter than MyAnimeList,
+- and a tracker that feels fun to open every day.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Roadmap
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Add better stats/insights for watched time.
+- Improve discover page filters.
+- Add import/export support for list backups.
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+No license file yet. Add one if you plan to open-source it publicly.
