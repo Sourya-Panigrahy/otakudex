@@ -2,10 +2,10 @@
 
 import { Check, ChevronDown, Pause, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLoginModal } from "@/components/login-modal";
+import { useLoginModal } from "@/components/auth";
 import { useSession } from "next-auth/react";
 
-import { EpisodeWatchedInline } from "@/components/episode-watched-inline";
+import { EpisodeWatchedInline } from "@/components/anime/episode-watched-inline";
 import {
   ENTRY_STATUS_LABEL,
   type EntryStatus,

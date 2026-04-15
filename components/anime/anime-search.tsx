@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLoginModal } from "@/components/login-modal";
+import { useLoginModal } from "@/components/auth";
 import { useSession } from "next-auth/react";
 
 import {
   AnimeBrowseCard,
   type ListEntryRow,
-} from "@/components/anime-browse-card";
-import { ANIME_BROWSE_GRID_CLASS } from "@/components/anime-browse-grid";
+} from "@/components/anime/cards/anime-browse-card";
+import { ANIME_BROWSE_GRID_CLASS } from "@/components/anime/cards/anime-browse-grid";
 import type { AnimeListDto } from "@/lib/jikan";
 import type { EntryStatus } from "@/lib/entry-status";
 
@@ -223,7 +223,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-zinc-50 sm:text-lg">
-                    Upcoming
+                    Upcoming (next months)
                   </h2>
                 </div>
                 <Link

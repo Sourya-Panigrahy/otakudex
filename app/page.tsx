@@ -1,10 +1,13 @@
 import { Suspense } from "react";
+import { eq } from "drizzle-orm";
 
-import { AnimeSearch } from "@/components/anime-search";
-import { ContinueTracking } from "@/components/continue-tracking";
-import { HomeHero } from "@/components/home-hero";
+import { auth } from "@/auth";
+import { AnimeSearch } from "@/components/anime";
+import { ContinueTracking, HomeHero } from "@/components/home";
+import { db } from "@/db";
+import { animeEntries } from "@/db/schema";
 import type { AnimeListDto } from "@/lib/jikan";
-import { getSeasonsNow, getSeasonsUpcoming } from "@/lib/jikan";
+import { getSeasonsNow, getSeasonsUpcomingVaried } from "@/lib/jikan";
 
 function SearchSkeleton() {
   return (
@@ -16,28 +19,53 @@ function SearchSkeleton() {
 }
 
 export default async function HomePage() {
+  const session = await auth();
+  const dayKey = new Date().toISOString().slice(0, 10);
+  const upcomingSeed = `${session?.user?.id ?? "guest"}:${dayKey}`;
+
   let discover: { now: AnimeListDto[]; upcoming: AnimeListDto[] } = {
     now: [],
     upcoming: [],
   };
+  let heroPool: AnimeListDto[] = [];
 
   const [nowRes, upcomingRes] = await Promise.allSettled([
     getSeasonsNow(12),
-    getSeasonsUpcoming(12),
+    getSeasonsUpcomingVaried({ limit: 12, seed: upcomingSeed }),
   ]);
 
   if (nowRes.status === "fulfilled") {
     discover = { ...discover, now: nowRes.value };
+    heroPool = nowRes.value;
   }
   if (upcomingRes.status === "fulfilled") {
     discover = { ...discover, upcoming: upcomingRes.value };
+    heroPool =
+      heroPool.length === 0
+        ? upcomingRes.value
+        : [...heroPool, ...upcomingRes.value].filter(
+            (a, i, arr) => arr.findIndex((x) => x.mal_id === a.mal_id) === i
+          );
   }
 
-  const featured = discover.now[0];
+  if (session?.user?.id) {
+    const rows = await db
+      .select({ malId: animeEntries.malId })
+      .from(animeEntries)
+      .where(eq(animeEntries.userId, session.user.id));
+    const inList = new Set(rows.map((r) => r.malId));
+    discover = {
+      now: discover.now.filter((a) => !inList.has(a.mal_id)),
+      upcoming: discover.upcoming.filter((a) => !inList.has(a.mal_id)),
+    };
+  }
+
+  const heroItems =
+    heroPool.length > 0 ? heroPool.slice(0, 6) : [...discover.now, ...discover.upcoming].slice(0, 6);
 
   return (
     <>
-      <HomeHero featured={featured} />
+      <HomeHero featuredItems={heroItems} />
       <ContinueTracking />
       <Suspense fallback={<SearchSkeleton />}>
         <AnimeSearch discover={discover} />

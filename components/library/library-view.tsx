@@ -3,12 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLoginModal } from "@/components/login-modal";
+import { useLoginModal } from "@/components/auth";
 import { useSession } from "next-auth/react";
 import { RefreshCw, Tv } from "lucide-react";
 
-import { EpisodeWatchedInline } from "@/components/episode-watched-inline";
-import { MalImportCard } from "@/components/mal-import-card";
+import { EpisodeWatchedInline } from "@/components/anime/episode-watched-inline";
+import { MalImportCard } from "@/components/library/cards/mal-import-card";
 import {
   Card,
   CardContent,

@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useLoginModal } from "@/components/login-modal";
+import { useLoginModal } from "@/components/auth";
 import { useSession } from "next-auth/react";
 
 import {
   AnimeBrowseCard,
   type ListEntryRow,
-} from "@/components/anime-browse-card";
+} from "@/components/anime/cards/anime-browse-card";
 import type { AnimeListDto } from "@/lib/jikan";
 import type { EntryStatus } from "@/lib/entry-status";
 

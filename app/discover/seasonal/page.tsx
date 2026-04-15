@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-import { BackLink } from "@/components/back-link";
-import { AnimeBrowseGrid } from "@/components/anime-browse-grid";
-import { DiscoverPagination } from "@/components/discover-pagination";
+import { AnimeBrowseGrid } from "@/components/anime";
+import { DiscoverPagination } from "@/components/discover";
+import { BackLink } from "@/components/shared";
 import { getSeasonsBrowseDiscover } from "@/lib/discover-pad";
 
 export const metadata: Metadata = {

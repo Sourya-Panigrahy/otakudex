@@ -1,4 +1,4 @@
-import { LibraryView } from "@/components/library-view";
+import { LibraryView } from "@/components/library";
 
 export const dynamic = "force-dynamic";
 

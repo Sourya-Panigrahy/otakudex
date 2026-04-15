@@ -1,12 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { BackLink } from "@/components/back-link";
+import { AnimeDetailActions } from "@/components/anime";
+import { BackLink } from "@/components/shared";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
-import { AnimeDetailActions } from "@/components/anime-detail-actions";
 import {
   AnimeDetailCharacterScroll,
   AnimeDetailGenreTags,

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
@@ -24,7 +24,7 @@ export async function ContinueTracking() {
     .where(
       and(
         eq(animeEntries.userId, session.user.id),
-        eq(animeEntries.status, "watching")
+        inArray(animeEntries.status, ["watching", "on_hold"])
       )
     )
     .orderBy(desc(animeEntries.updatedAt))
@@ -37,10 +37,10 @@ export async function ContinueTracking() {
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-zinc-50 sm:text-xl">
-            Continue tracking
+            In progress
           </h2>
           <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
-            Pick up where you left off.
+            Keep your active and paused shows moving.
           </p>
         </div>
         <Link

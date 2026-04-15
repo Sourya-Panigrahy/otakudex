@@ -1,6 +1,6 @@
 "use client";
 
-import { LoginModalProvider } from "@/components/login-modal";
+import { LoginModalProvider } from "@/components/auth";
 import { SessionProvider } from "next-auth/react";
 
 export function Providers({ children }: { children: React.ReactNode }) {

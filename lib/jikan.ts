@@ -128,6 +128,24 @@ export type SeasonsBrowseResult = {
   lastPage: number;
 };
 
+function hashString(input: string): number {
+  let h = 0;
+  for (let i = 0; i < input.length; i++) {
+    h = (h * 31 + input.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
+function rotateSlice(items: AnimeListDto[], start: number, size: number): AnimeListDto[] {
+  if (items.length === 0 || size <= 0) return [];
+  if (items.length <= size) return items.slice(0, size);
+  const out: AnimeListDto[] = [];
+  for (let i = 0; i < size; i++) {
+    out.push(items[(start + i) % items.length]);
+  }
+  return out;
+}
+
 /**
  * Paginated seasons list (Jikan `seasons/now` or `seasons/upcoming`).
  * `page` and `limit` are clamped (limit max 25 per Jikan).
@@ -195,6 +213,33 @@ export async function getSeasonsUpcoming(limit = 12): Promise<AnimeListDto[]> {
   const { data, hasNextPage } = await getSeasonsBrowse("upcoming", 1, cap);
   const padded = await padSeasonFirstPageIfEleven("upcoming", data, hasNextPage);
   return padded.slice(0, cap);
+}
+
+/**
+ * Returns a varied "upcoming" slice for home feed:
+ * - combines up to first 2 pages
+ * - rotates start index using a deterministic seed (e.g. user+day)
+ */
+export async function getSeasonsUpcomingVaried(opts: {
+  limit?: number;
+  seed: string;
+}): Promise<AnimeListDto[]> {
+  const cap = Math.min(Math.max(1, opts.limit ?? 12), 25);
+  const first = await getSeasonsBrowse("upcoming", 1, 25);
+  let pool = first.data;
+  if (first.hasNextPage) {
+    const second = await getSeasonsBrowse("upcoming", 2, 25);
+    pool = dedupeAnimeListByMalId([...pool, ...second.data]);
+    if (second.hasNextPage) {
+      const third = await getSeasonsBrowse("upcoming", 3, 25);
+      pool = dedupeAnimeListByMalId([...pool, ...third.data]);
+    }
+  }
+
+  const padded = await padSeasonFirstPageIfEleven("upcoming", pool, first.hasNextPage);
+  if (padded.length <= cap) return padded.slice(0, cap);
+  const start = hashString(opts.seed) % padded.length;
+  return rotateSlice(padded, start, cap);
 }
 
 export type CharacterCardDto = {
