@@ -27,6 +27,10 @@ export default async function HomePage() {
     now: [],
     upcoming: [],
   };
+  let rawDiscover: { now: AnimeListDto[]; upcoming: AnimeListDto[] } = {
+    now: [],
+    upcoming: [],
+  };
   let heroPool: AnimeListDto[] = [];
 
   const [nowRes, upcomingRes] = await Promise.allSettled([
@@ -36,10 +40,12 @@ export default async function HomePage() {
 
   if (nowRes.status === "fulfilled") {
     discover = { ...discover, now: nowRes.value };
+    rawDiscover = { ...rawDiscover, now: nowRes.value };
     heroPool = nowRes.value;
   }
   if (upcomingRes.status === "fulfilled") {
     discover = { ...discover, upcoming: upcomingRes.value };
+    rawDiscover = { ...rawDiscover, upcoming: upcomingRes.value };
     heroPool =
       heroPool.length === 0
         ? upcomingRes.value
@@ -58,6 +64,14 @@ export default async function HomePage() {
       now: discover.now.filter((a) => !inList.has(a.mal_id)),
       upcoming: discover.upcoming.filter((a) => !inList.has(a.mal_id)),
     };
+
+    // Never leave a section empty just because the user already tracks most titles.
+    if (discover.now.length === 0 && rawDiscover.now.length > 0) {
+      discover.now = rawDiscover.now;
+    }
+    if (discover.upcoming.length === 0 && rawDiscover.upcoming.length > 0) {
+      discover.upcoming = rawDiscover.upcoming;
+    }
   }
 
   const heroItems =

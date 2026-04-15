@@ -228,15 +228,19 @@ export async function getSeasonsUpcomingVaried(opts: {
   const first = await getSeasonsBrowse("upcoming", 1, 25);
   let pool = first.data;
   if (first.hasNextPage) {
-    const second = await getSeasonsBrowse("upcoming", 2, 25);
-    pool = dedupeAnimeListByMalId([...pool, ...second.data]);
-    if (second.hasNextPage) {
-      const third = await getSeasonsBrowse("upcoming", 3, 25);
-      pool = dedupeAnimeListByMalId([...pool, ...third.data]);
+    try {
+      const second = await getSeasonsBrowse("upcoming", 2, 25);
+      pool = dedupeAnimeListByMalId([...pool, ...second.data]);
+    } catch {
+      // If extra page fetch fails (rate limit / timeout), still serve page 1.
     }
   }
 
-  const padded = await padSeasonFirstPageIfEleven("upcoming", pool, first.hasNextPage);
+  const padded = await padSeasonFirstPageIfEleven(
+    "upcoming",
+    pool,
+    first.hasNextPage
+  );
   if (padded.length <= cap) return padded.slice(0, cap);
   const start = hashString(opts.seed) % padded.length;
   return rotateSlice(padded, start, cap);
