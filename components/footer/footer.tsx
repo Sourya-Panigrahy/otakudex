@@ -25,6 +25,12 @@ export function Footer() {
             Browse
           </Link>
           <Link
+            href="/movies"
+            className="text-zinc-400 transition hover:text-cyan-400"
+          >
+            Movies
+          </Link>
+          <Link
             href="/library"
             className="text-zinc-400 transition hover:text-cyan-400"
           >

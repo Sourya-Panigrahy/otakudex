@@ -62,40 +62,64 @@ export function AnimeBrowseGrid({
       openLoginModal();
       return;
     }
+    const current = byMalId.get(malId);
     setPendingMal(malId);
     try {
-      const res = await fetch("/api/entries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mal_id: malId, status: statusChoice }),
-      });
-      const json = (await res.json()) as {
-        entry?: { id: string; malId: number; status: string };
-        error?: string;
-      };
-      if (res.status === 409 && json.entry) {
-        setByMalId((prev) => {
-          const next = new Map(prev);
-          next.set(malId, {
-            id: json.entry!.id,
-            malId,
-            status: json.entry!.status,
-          });
-          return next;
+      if (current) {
+        const res = await fetch(`/api/entries/${current.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: statusChoice }),
         });
-        return;
-      }
-      if (!res.ok) return;
-      if (json.entry) {
-        setByMalId((prev) => {
-          const next = new Map(prev);
-          next.set(malId, {
-            id: json.entry!.id,
-            malId,
-            status: json.entry!.status,
+        const json = (await res.json()) as {
+          entry?: { id: string; malId: number; status: string };
+        };
+        const updated = json.entry;
+        if (updated) {
+          setByMalId((prev) => {
+            const next = new Map(prev);
+            next.set(malId, {
+              id: updated.id,
+              malId,
+              status: updated.status,
+            });
+            return next;
           });
-          return next;
+        }
+      } else {
+        const res = await fetch("/api/entries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mal_id: malId, status: statusChoice }),
         });
+        const json = (await res.json()) as {
+          entry?: { id: string; malId: number; status: string };
+          error?: string;
+        };
+        if (res.status === 409 && json.entry) {
+          setByMalId((prev) => {
+            const next = new Map(prev);
+            next.set(malId, {
+              id: json.entry!.id,
+              malId,
+              status: json.entry!.status,
+            });
+            return next;
+          });
+          return;
+        }
+        if (!res.ok) return;
+        if (json.entry) {
+          setByMalId((prev) => {
+            const next = new Map(prev);
+            next.set(malId, {
+              id: json.entry!.id,
+              malId,
+              status: json.entry!.status,
+            });
+            return next;
+          });
+        }
       }
     } finally {
       setPendingMal(null);

@@ -15,6 +15,7 @@ export function Header() {
   const pathname = usePathname();
 
   const browseActive = pathname === "/";
+  const moviesActive = pathname.startsWith("/movies");
   const listActive = pathname === "/library";
 
   const actions = (
@@ -78,13 +79,21 @@ export function Header() {
         <nav className="flex min-w-0 items-center gap-0 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] lg:justify-center [&::-webkit-scrollbar]:hidden">
           <Link
             href="/"
-            className={`relative shrink-0 px-2.5 py-2 text-sm font-medium transition sm:px-3 ${
-              browseActive
+            className={`relative shrink-0 px-2.5 py-2 text-sm font-medium transition sm:px-3 ${browseActive
                 ? "text-cyan-400 after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-cyan-400 sm:after:left-3 sm:after:right-3"
                 : "text-zinc-300 hover:text-white"
-            }`}
+              }`}
           >
-            Browse
+            Anime
+          </Link>
+          <Link
+            href="/movies"
+            className={`relative shrink-0 px-2.5 py-2 text-sm font-medium transition sm:px-3 ${moviesActive
+                ? "text-cyan-400 after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-cyan-400 sm:after:left-3 sm:after:right-3"
+                : "text-zinc-300 hover:text-white"
+              }`}
+          >
+            Movies
           </Link>
           <Link
             href="/#seasonal"
@@ -92,16 +101,17 @@ export function Header() {
           >
             Seasonal
           </Link>
-          <Link
-            href="/library"
-            className={`relative shrink-0 px-2.5 py-2 text-sm font-medium transition sm:px-3 ${
-              listActive
-                ? "text-cyan-400 after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-cyan-400 sm:after:left-3 sm:after:right-3"
-                : "text-zinc-300 hover:text-white"
-            }`}
-          >
-            My List
-          </Link>
+          {status === "authenticated" && (
+            <Link
+              href="/library"
+              className={`relative shrink-0 px-2.5 py-2 text-sm font-medium transition sm:px-3 ${listActive
+                  ? "text-cyan-400 after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-cyan-400 sm:after:left-3 sm:after:right-3"
+                  : "text-zinc-300 hover:text-white"
+                }`}
+            >
+              My List
+            </Link>
+          )}
           <Link
             href="#community"
             className="hidden shrink-0 px-2.5 py-2 text-sm font-medium text-zinc-300 transition hover:text-white sm:inline sm:px-3"

@@ -5,8 +5,9 @@ import { Pencil } from "lucide-react";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { animeEntries } from "@/db/schema";
+import { animeEntries, mediaEntries } from "@/db/schema";
 import { ENTRY_STATUS_LABEL, type EntryStatus } from "@/lib/entry-status";
+import { MEDIA_STATUS_LABEL, type MediaStatus } from "@/lib/media-types";
 
 const BAR_COLORS = [
   "bg-cyan-500",
@@ -15,21 +16,83 @@ const BAR_COLORS = [
   "bg-emerald-500",
 ] as const;
 
+type ContinueItem = {
+  id: string;
+  title: string;
+  imageUrl: string | null;
+  href: string;
+  statusLabel: string;
+  progressText: string;
+  pct: number;
+  updatedAt: Date;
+};
+
 export async function ContinueTracking() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const rows = await db
-    .select()
-    .from(animeEntries)
-    .where(
-      and(
-        eq(animeEntries.userId, session.user.id),
-        ne(animeEntries.status, "completed")
+  const [animeRows, mediaRows] = await Promise.all([
+    db
+      .select()
+      .from(animeEntries)
+      .where(
+        and(
+          eq(animeEntries.userId, session.user.id),
+          ne(animeEntries.status, "completed")
+        )
       )
-    )
-    .orderBy(desc(animeEntries.updatedAt))
-    .limit(12);
+      .orderBy(desc(animeEntries.updatedAt))
+      .limit(12),
+    db
+      .select()
+      .from(mediaEntries)
+      .where(
+        and(
+          eq(mediaEntries.userId, session.user.id),
+          ne(mediaEntries.status, "completed")
+        )
+      )
+      .orderBy(desc(mediaEntries.updatedAt))
+      .limit(12),
+  ]);
+
+  const items: ContinueItem[] = [];
+
+  for (const a of animeRows) {
+    const total = a.totalEpisodes;
+    const watched = a.watchedEpisodes;
+    const pct = total != null && total > 0 ? Math.min(100, Math.round((watched / total) * 100)) : 0;
+    items.push({
+      id: `anime-${a.id}`,
+      title: a.titleEn || a.titleDefault || `Anime ${a.malId}`,
+      imageUrl: a.imageUrl,
+      href: `/anime/${a.malId}`,
+      statusLabel: ENTRY_STATUS_LABEL[a.status as EntryStatus] ?? a.status,
+      progressText: total != null ? `Ep ${watched}/${total}` : `${watched} eps`,
+      pct,
+      updatedAt: a.updatedAt,
+    });
+  }
+
+  for (const m of mediaRows) {
+    const isMovie = m.mediaType === "movie";
+    const total = m.totalProgress ?? (isMovie ? 1 : null);
+    const progress = m.progress;
+    const pct = total != null && total > 0 ? Math.min(100, Math.round((progress / total) * 100)) : 0;
+    items.push({
+      id: `media-${m.id}`,
+      title: m.titleEn || m.titleDefault || `Title ${m.externalId}`,
+      imageUrl: m.imageUrl,
+      href: isMovie ? `/movies/${m.externalId}` : `/movies/${m.externalId}`,
+      statusLabel: MEDIA_STATUS_LABEL[m.status as MediaStatus] ?? m.status,
+      progressText: isMovie ? "Movie" : total != null ? `Ep ${progress}/${total}` : `${progress} eps`,
+      pct,
+      updatedAt: m.updatedAt,
+    });
+  }
+
+  items.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  const rows = items.slice(0, 12);
 
   if (rows.length === 0) return null;
 
@@ -53,13 +116,6 @@ export async function ContinueTracking() {
       </div>
       <ul className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {rows.map((entry, i) => {
-          const title = entry.titleEn || entry.titleDefault || `Anime ${entry.malId}`;
-          const total = entry.totalEpisodes;
-          const watched = entry.watchedEpisodes;
-          const pct =
-            total != null && total > 0
-              ? Math.min(100, Math.round((watched / total) * 100))
-              : 0;
           const barClass = BAR_COLORS[i % BAR_COLORS.length];
 
           return (
@@ -68,7 +124,7 @@ export async function ContinueTracking() {
               className="w-[min(100%,240px)] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-900/60 shadow-lg shadow-black/20"
             >
               <Link
-                href={`/anime/${entry.malId}`}
+                href={entry.href}
                 className="flex gap-3 p-3 outline-none ring-cyan-500/50 focus-visible:ring-2"
               >
                 <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
@@ -89,23 +145,19 @@ export async function ContinueTracking() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 text-sm font-medium leading-snug text-zinc-100">
-                    {title}
+                    {entry.title}
                   </p>
                   <div className="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-500">
                     <span className="font-medium text-cyan-400">
-                      {ENTRY_STATUS_LABEL[entry.status as EntryStatus] ?? entry.status}
+                      {entry.statusLabel}
                     </span>
                     <span>•</span>
-                    <span>
-                      {total != null
-                        ? `Ep ${watched}/${total}`
-                        : `${watched} eps`}
-                    </span>
+                    <span>{entry.progressText}</span>
                   </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
                     <div
                       className={`h-full rounded-full transition-all ${barClass}`}
-                      style={{ width: `${pct}%` }}
+                      style={{ width: `${entry.pct}%` }}
                     />
                   </div>
                 </div>

@@ -116,3 +116,45 @@ export const animeEntries = pgTable(
 
 export type AnimeEntry = typeof animeEntries.$inferSelect;
 export type NewAnimeEntry = typeof animeEntries.$inferInsert;
+
+export const mediaEntries = pgTable(
+  "media_entry",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    mediaType: text("media_type").notNull(),
+    provider: text("provider").notNull().default("tmdb"),
+    externalId: text("external_id").notNull(),
+    status: text("status").notNull(),
+    progress: integer("progress").notNull().default(0),
+    totalProgress: integer("total_progress"),
+    currentSeason: integer("current_season"),
+    totalSeasons: integer("total_seasons"),
+    minutesPerEpisode: integer("minutes_per_episode"),
+    titleEn: text("title_en"),
+    titleDefault: text("title_default").notNull(),
+    imageUrl: text("image_url"),
+    backdropUrl: text("backdrop_url"),
+    overview: text("overview"),
+    genresJson: text("genres_json"),
+    airStatus: text("air_status"),
+    releaseDate: text("release_date"),
+    rating: integer("rating"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => ({
+    userProviderExternalUnique: uniqueIndex("media_entry_user_prov_ext_idx").on(
+      t.userId,
+      t.provider,
+      t.externalId,
+      t.mediaType
+    ),
+  })
+);
+
+export type MediaEntry = typeof mediaEntries.$inferSelect;
+export type NewMediaEntry = typeof mediaEntries.$inferInsert;
+

@@ -2,96 +2,112 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Check, Clock, Eye, Tv } from "lucide-react";
-
-import type { AnimeListDto } from "@/lib/jikan";
+import { Check, Clock, Eye, Film, Star } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useLoginModal } from "@/components/auth";
 import {
-  ENTRY_STATUS_LABEL,
-  type EntryStatus,
-} from "@/lib/entry-status";
+  MEDIA_STATUS_LABEL,
+  type MediaStatus,
+  type UniversalMediaDto,
+} from "@/lib/media-types";
 
-export type ListEntryRow = {
+export interface MovieTrackState {
   id: string;
-  malId: number;
+  externalId: string;
   status: string;
-};
+  progress: number;
+  rating?: number | null;
+}
 
-export type AnimeBrowseCardProps = {
-  anime: AnimeListDto;
+interface MovieCardProps {
+  movie: UniversalMediaDto;
+  tracked?: MovieTrackState | null;
+  isPending?: boolean;
+  onUpdateStatus?: (movie: UniversalMediaDto, status: MediaStatus) => void;
   priority?: boolean;
-  existing?: ListEntryRow | null;
-  /** True while this title’s list action is in flight. */
-  isPending: boolean;
-  onAdd: (malId: number, status: EntryStatus) => void;
-};
+}
 
-export function AnimeBrowseCard({
-  anime: a,
+export function MovieCard({
+  movie,
+  tracked,
+  isPending = false,
+  onUpdateStatus,
   priority = false,
-  existing,
-  isPending,
-  onAdd,
-}: AnimeBrowseCardProps) {
-  const isCompleted = existing?.status === "completed";
-  const isPlanToWatch = existing?.status === "plan_to_watch";
-  const isWatching = existing?.status === "watching";
+}: MovieCardProps) {
+  const { status: authStatus } = useSession();
+  const { openLoginModal } = useLoginModal();
 
-  const displayTitle = a.title_english || a.title;
+  const handleAction = (status: MediaStatus) => {
+    if (authStatus !== "authenticated") {
+      openLoginModal();
+      return;
+    }
+    onUpdateStatus?.(movie, status);
+  };
+
+  const isWatched = tracked?.status === "completed";
+  const isPlanToWatch = tracked?.status === "plan_to_watch";
+  const isWatching = tracked?.status === "watching";
 
   return (
     <li className="group flex flex-col overflow-hidden rounded-xl border border-white/10 bg-zinc-900/60 shadow-lg shadow-black/20 transition-all duration-300 hover:border-cyan-500/40 hover:shadow-cyan-500/10 hover:shadow-xl">
       <Link
-        href={`/anime/${a.mal_id}`}
+        href={`/movies/${movie.externalId}`}
         className="block flex-1 outline-none ring-cyan-400 focus-visible:ring-2"
       >
         <div className="relative aspect-2/3 w-full overflow-hidden bg-zinc-800">
-          {a.image_url ? (
+          {movie.posterUrl ? (
             <Image
-              src={a.image_url}
-              alt={displayTitle}
+              src={movie.posterUrl}
+              alt={movie.title}
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-105"
-              sizes="(max-width: 399px) 100vw, (max-width: 639px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 16vw"
+              sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 16vw"
               priority={priority}
             />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-zinc-500">
-              <Tv className="h-8 w-8" />
-              <span className="text-xs">No image</span>
+              <Film className="h-8 w-8" />
+              <span className="text-xs">No poster</span>
             </div>
           )}
 
           {/* Top badges */}
           <div className="absolute left-2 right-2 top-2 flex items-center justify-between gap-1 pointer-events-none">
-            {a.episodes != null && (
+            {movie.ratingAverage != null && movie.ratingAverage > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-amber-400 backdrop-blur-md shadow">
+                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                {movie.ratingAverage.toFixed(1)}
+              </span>
+            )}
+            {movie.runtimeMinutes != null && movie.runtimeMinutes > 0 && (
               <span className="inline-flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-0.5 text-[11px] font-medium text-zinc-300 backdrop-blur-md shadow">
-                {a.episodes} eps
+                <Clock className="h-3 w-3 text-zinc-400" />
+                {movie.runtimeMinutes}m
               </span>
             )}
           </div>
 
-          {/* Floating status indicator pill */}
-          {existing && (
-            <div className="absolute bottom-2 left-2 right-2 pointer-events-none">
+          {/* Quick status indicator pill */}
+          {tracked && (
+            <div className="absolute bottom-2 left-2 right-2">
               <span
                 className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium backdrop-blur-md shadow ${
-                  isCompleted
+                  isWatched
                     ? "bg-emerald-500/90 text-white"
                     : isWatching
                     ? "bg-cyan-500/90 text-white"
-                    : isPlanToWatch
-                    ? "bg-orange-500/90 text-white"
-                    : "bg-amber-500/90 text-white"
+                    : "bg-orange-500/90 text-white"
                 }`}
               >
-                {isCompleted ? (
+                {isWatched ? (
                   <Check className="h-3 w-3 stroke-[2.5]" />
                 ) : isWatching ? (
                   <Eye className="h-3 w-3" />
                 ) : (
                   <Clock className="h-3 w-3" />
                 )}
-                {ENTRY_STATUS_LABEL[existing.status as EntryStatus] ?? existing.status}
+                {MEDIA_STATUS_LABEL[tracked.status as MediaStatus] ?? tracked.status}
               </span>
             </div>
           )}
@@ -99,12 +115,14 @@ export function AnimeBrowseCard({
 
         <div className="flex flex-col gap-1 p-2.5 sm:p-3">
           <p className="line-clamp-2 text-left text-sm font-semibold leading-snug text-zinc-50 group-hover:text-cyan-400 sm:text-base">
-            {displayTitle}
+            {movie.title}
           </p>
           <div className="flex items-center justify-between text-[11px] text-zinc-400 sm:text-xs">
-            <span>Anime</span>
-            {a.episodes != null && (
-              <span className="text-zinc-500">{a.episodes} eps</span>
+            <span>{movie.releaseYear ?? "Movie"}</span>
+            {movie.genres.length > 0 && (
+              <span className="line-clamp-1 max-w-[120px] text-right text-zinc-500">
+                {movie.genres.slice(0, 2).join(", ")}
+              </span>
             )}
           </div>
         </div>
@@ -116,7 +134,7 @@ export function AnimeBrowseCard({
           <button
             type="button"
             disabled={isPending}
-            onClick={() => onAdd(a.mal_id, isPlanToWatch ? "on_hold" : "plan_to_watch")}
+            onClick={() => handleAction(isPlanToWatch ? "on_hold" : "plan_to_watch")}
             className={`flex items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition ${
               isPlanToWatch
                 ? "border-orange-500/50 bg-orange-500/20 text-orange-300"
@@ -130,21 +148,15 @@ export function AnimeBrowseCard({
           <button
             type="button"
             disabled={isPending}
-            onClick={() => onAdd(a.mal_id, isWatching ? "completed" : "watching")}
+            onClick={() => handleAction(isWatched ? "watching" : "completed")}
             className={`flex items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition ${
-              isCompleted
+              isWatched
                 ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-300"
-                : isWatching
-                ? "border-cyan-500/50 bg-cyan-500/20 text-cyan-300"
                 : "border-white/10 bg-white/5 text-zinc-300 hover:border-white/20 hover:bg-white/10 hover:text-white"
             } disabled:opacity-50`}
           >
-            {isCompleted ? (
-              <Check className="h-3 w-3 stroke-[2.5]" />
-            ) : (
-              <Eye className="h-3 w-3" />
-            )}
-            <span>{isCompleted ? "Watched" : isWatching ? "Watching" : "Watch"}</span>
+            <Check className="h-3 w-3 stroke-[2.5]" />
+            <span>{isWatched ? "Watched" : "Mark seen"}</span>
           </button>
         </div>
       </div>
