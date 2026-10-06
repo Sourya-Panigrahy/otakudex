@@ -12,19 +12,26 @@ import {
   verificationTokens,
 } from "@/db/schema";
 
+const googleClientId =
+  process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret =
+  process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+
 const providers = [
-  ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
+  ...(googleClientId && googleClientSecret
     ? [
         Google({
-          clientId: process.env.AUTH_GOOGLE_ID,
-          clientSecret: process.env.AUTH_GOOGLE_SECRET,
+          clientId: googleClientId,
+          clientSecret: googleClientSecret,
         }),
       ]
     : []),
 ];
 
 if (providers.length === 0) {
-  console.warn("[auth] No OAuth providers: set AUTH_GOOGLE_* in .env");
+  console.warn(
+    "[auth] No OAuth providers: set AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET in .env"
+  );
 }
 
 /** Avoid `console.error` for recoverable auth failures — Next.js dev overlay treats it as a runtime error. */
@@ -54,7 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     authenticatorsTable: authenticators,
   }),
   providers,
-  secret: process.env.AUTH_SECRET,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   debug: process.env.AUTH_DEBUG === "1",
   logger: { error: authLoggerError },
   callbacks: {
