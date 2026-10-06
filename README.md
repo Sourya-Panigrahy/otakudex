@@ -15,7 +15,7 @@ So I wanted something faster, focused, and simple to use for daily tracking.
 - View anime details, characters, and recommendations.
 - Track watch status (plan to watch, watching, completed, etc.).
 - Update episode progress.
-- Sign in with OAuth (Google and/or GitHub) using NextAuth.
+- Sign in with OAuth (Google) using NextAuth.
 - PWA support (installable app with offline page and service worker).
 
 ## Tech Stack
@@ -44,9 +44,7 @@ Create a `.env` file in the project root and add:
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres
 AUTH_SECRET=your-random-secret
 
-# Optional OAuth providers
-AUTH_GITHUB_ID=
-AUTH_GITHUB_SECRET=
+# Google OAuth provider
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
 
@@ -54,7 +52,7 @@ AUTH_GOOGLE_SECRET=
 AUTH_DEBUG=0
 ```
 
-At least one OAuth provider is recommended for login.
+Google OAuth credentials (`AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`) are required for user login.
 
 ### 3) Run database setup
 

@@ -1,7 +1,6 @@
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { AuthError } from "next-auth";
 import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
 import { db } from "@/db";
@@ -14,14 +13,6 @@ import {
 } from "@/db/schema";
 
 const providers = [
-  ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
-    ? [
-        GitHub({
-          clientId: process.env.AUTH_GITHUB_ID,
-          clientSecret: process.env.AUTH_GITHUB_SECRET,
-        }),
-      ]
-    : []),
   ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
     ? [
         Google({
@@ -33,9 +24,7 @@ const providers = [
 ];
 
 if (providers.length === 0) {
-  console.warn(
-    "[auth] No OAuth providers: set AUTH_GITHUB_* and/or AUTH_GOOGLE_* in .env"
-  );
+  console.warn("[auth] No OAuth providers: set AUTH_GOOGLE_* in .env");
 }
 
 /** Avoid `console.error` for recoverable auth failures — Next.js dev overlay treats it as a runtime error. */

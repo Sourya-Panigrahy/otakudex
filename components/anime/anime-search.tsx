@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { useLoginModal } from "@/components/auth";
 import { useSession } from "next-auth/react";
 
@@ -43,6 +44,83 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
   const [error, setError] = useState<string | null>(null);
   const [byMalId, setByMalId] = useState<Map<number, ListEntryRow>>(new Map());
   const [pendingMal, setPendingMal] = useState<number | null>(null);
+
+  // Paginated/lazy-loaded items for Seasonal
+  const [nowList, setNowList] = useState<AnimeListDto[]>(discover?.now ?? []);
+  const [nowPage, setNowPage] = useState(1);
+  const [nowLoadingMore, setNowLoadingMore] = useState(false);
+  const [nowHasMore, setNowHasMore] = useState(true);
+
+  // Paginated/lazy-loaded items for Upcoming
+  const [upcomingList, setUpcomingList] = useState<AnimeListDto[]>(
+    discover?.upcoming ?? []
+  );
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const [upcomingLoadingMore, setUpcomingLoadingMore] = useState(false);
+  const [upcomingHasMore, setUpcomingHasMore] = useState(true);
+
+  useEffect(() => {
+    if (discover?.now) setNowList(discover.now);
+    if (discover?.upcoming) setUpcomingList(discover.upcoming);
+  }, [discover?.now, discover?.upcoming]);
+
+  const loadMoreNow = async () => {
+    if (nowLoadingMore || !nowHasMore) return;
+    setNowLoadingMore(true);
+    try {
+      const nextPage = nowPage + 1;
+      const res = await fetch(`/api/anime/seasons?kind=now&page=${nextPage}`);
+      if (!res.ok) return;
+      const json = (await res.json()) as {
+        data: AnimeListDto[];
+        hasNextPage: boolean;
+      };
+      if (json.data?.length) {
+        setNowList((prev) => {
+          const ids = new Set(prev.map((x) => x.mal_id));
+          const uniqueNew = json.data.filter((x) => !ids.has(x.mal_id));
+          return [...prev, ...uniqueNew];
+        });
+        setNowPage(nextPage);
+        setNowHasMore(Boolean(json.hasNextPage));
+      } else {
+        setNowHasMore(false);
+      }
+    } catch {
+      // Keep state on network failure
+    } finally {
+      setNowLoadingMore(false);
+    }
+  };
+
+  const loadMoreUpcoming = async () => {
+    if (upcomingLoadingMore || !upcomingHasMore) return;
+    setUpcomingLoadingMore(true);
+    try {
+      const nextPage = upcomingPage + 1;
+      const res = await fetch(`/api/anime/seasons?kind=upcoming&page=${nextPage}`);
+      if (!res.ok) return;
+      const json = (await res.json()) as {
+        data: AnimeListDto[];
+        hasNextPage: boolean;
+      };
+      if (json.data?.length) {
+        setUpcomingList((prev) => {
+          const ids = new Set(prev.map((x) => x.mal_id));
+          const uniqueNew = json.data.filter((x) => !ids.has(x.mal_id));
+          return [...prev, ...uniqueNew];
+        });
+        setUpcomingPage(nextPage);
+        setUpcomingHasMore(Boolean(json.hasNextPage));
+      } else {
+        setUpcomingHasMore(false);
+      }
+    } catch {
+      // Keep state on network failure
+    } finally {
+      setUpcomingLoadingMore(false);
+    }
+  };
 
   const loadEntries = useCallback(async () => {
     if (!session?.user?.id) {
@@ -152,26 +230,23 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
 
   const hint = useMemo(() => {
     if (!query.trim()) {
-      return discover?.now.length || discover?.upcoming.length
+      return nowList.length || upcomingList.length
         ? "Browse seasonal hits and upcoming below, or use the header search."
         : "Use the header search to find titles.";
     }
     if (loading) return "Searching…";
     return null;
-  }, [query, loading, discover?.now.length, discover?.upcoming.length]);
+  }, [query, loading, nowList.length, upcomingList.length]);
 
   const searching = Boolean(debounced.trim());
   const showDiscover =
     !searching &&
-    discover &&
-    (discover.now.length > 0 || discover.upcoming.length > 0);
-
-  const nowLen = discover?.now.length ?? 0;
+    (nowList.length > 0 || upcomingList.length > 0);
 
   const priorityFor = (listKey: string, index: number) =>
     (listKey === "now" && index < 6) ||
     (listKey === "search" && searching && index < 6) ||
-    (listKey === "up" && nowLen === 0 && index < 6);
+    (listKey === "up" && nowList.length === 0 && index < 6);
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
@@ -185,8 +260,8 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
       </div>
 
       {showDiscover ? (
-        <div className="flex flex-col gap-6 sm:gap-8">
-          {discover!.now.length > 0 ? (
+        <div className="flex flex-col gap-8 sm:gap-10">
+          {nowList.length > 0 ? (
             <section
               id="seasonal"
               className="flex scroll-mt-28 flex-col gap-3 sm:gap-4"
@@ -205,7 +280,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
                 </Link>
               </div>
               <ul className={ANIME_BROWSE_GRID_CLASS}>
-                {discover!.now.map((a, i) => (
+                {nowList.map((a, i) => (
                   <AnimeBrowseCard
                     key={`now-${a.mal_id}`}
                     anime={a}
@@ -216,9 +291,32 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
                   />
                 ))}
               </ul>
+              {nowHasMore ? (
+                <div className="mt-2 flex justify-center">
+                  <button
+                    type="button"
+                    disabled={nowLoadingMore}
+                    onClick={loadMoreNow}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-2.5 text-xs font-semibold text-zinc-200 backdrop-blur transition hover:border-white/25 hover:bg-white/10 active:scale-95 disabled:opacity-50 sm:text-sm"
+                  >
+                    {nowLoadingMore ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+                        Loading more…
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 text-cyan-400" />
+                        Load more seasonal
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : null}
             </section>
           ) : null}
-          {discover!.upcoming.length > 0 ? (
+
+          {upcomingList.length > 0 ? (
             <section className="flex flex-col gap-3 sm:gap-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
@@ -234,7 +332,7 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
                 </Link>
               </div>
               <ul className={ANIME_BROWSE_GRID_CLASS}>
-                {discover!.upcoming.map((a, i) => (
+                {upcomingList.map((a, i) => (
                   <AnimeBrowseCard
                     key={`up-${a.mal_id}`}
                     anime={a}
@@ -245,6 +343,28 @@ export function AnimeSearch({ discover }: AnimeSearchProps) {
                   />
                 ))}
               </ul>
+              {upcomingHasMore ? (
+                <div className="mt-2 flex justify-center">
+                  <button
+                    type="button"
+                    disabled={upcomingLoadingMore}
+                    onClick={loadMoreUpcoming}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-2.5 text-xs font-semibold text-zinc-200 backdrop-blur transition hover:border-white/25 hover:bg-white/10 active:scale-95 disabled:opacity-50 sm:text-sm"
+                  >
+                    {upcomingLoadingMore ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+                        Loading more…
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 text-cyan-400" />
+                        Load more upcoming
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : null}
             </section>
           ) : null}
         </div>

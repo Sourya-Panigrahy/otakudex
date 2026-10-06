@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
@@ -6,6 +6,7 @@ import { Pencil } from "lucide-react";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { animeEntries } from "@/db/schema";
+import { ENTRY_STATUS_LABEL, type EntryStatus } from "@/lib/entry-status";
 
 const BAR_COLORS = [
   "bg-cyan-500",
@@ -24,11 +25,11 @@ export async function ContinueTracking() {
     .where(
       and(
         eq(animeEntries.userId, session.user.id),
-        inArray(animeEntries.status, ["watching", "on_hold"])
+        ne(animeEntries.status, "completed")
       )
     )
     .orderBy(desc(animeEntries.updatedAt))
-    .limit(8);
+    .limit(12);
 
   if (rows.length === 0) return null;
 
@@ -37,10 +38,10 @@ export async function ContinueTracking() {
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-zinc-50 sm:text-xl">
-            In progress
+            Continue tracking
           </h2>
           <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
-            Keep your active and paused shows moving.
+            Jump back into titles on your list.
           </p>
         </div>
         <Link
@@ -90,11 +91,17 @@ export async function ContinueTracking() {
                   <p className="line-clamp-2 text-sm font-medium leading-snug text-zinc-100">
                     {title}
                   </p>
-                  <p className="mt-1 text-[11px] text-zinc-500">
-                    {total != null
-                      ? `Episode ${watched} of ${total}`
-                      : `${watched} eps watched`}
-                  </p>
+                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-500">
+                    <span className="font-medium text-cyan-400">
+                      {ENTRY_STATUS_LABEL[entry.status as EntryStatus] ?? entry.status}
+                    </span>
+                    <span>•</span>
+                    <span>
+                      {total != null
+                        ? `Ep ${watched}/${total}`
+                        : `${watched} eps`}
+                    </span>
+                  </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
                     <div
                       className={`h-full rounded-full transition-all ${barClass}`}

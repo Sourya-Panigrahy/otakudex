@@ -63,9 +63,45 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`dark ${inter.className} ${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col overflow-x-hidden bg-zinc-950 text-zinc-100">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined') {
+                window.addEventListener('unhandledrejection', function(event) {
+                  try {
+                    var r = event.reason;
+                    var str = (r && (r.stack || r.message)) ? String(r.stack || r.message) : String(r || '');
+                    if (str.includes('chrome-extension://') || str.includes('M_ID') || str.includes('eppiocemhmnlbhjplcgkofciiegomcon')) {
+                      event.preventDefault();
+                      event.stopImmediatePropagation();
+                    }
+                  } catch (err) {}
+                }, true);
+
+                window.addEventListener('error', function(event) {
+                  try {
+                    var fn = event.filename || '';
+                    var msg = (event.error && (event.error.stack || event.error.message)) || event.message || '';
+                    var str = String(fn) + ' ' + String(msg);
+                    if (str.includes('chrome-extension://') || str.includes('M_ID') || str.includes('eppiocemhmnlbhjplcgkofciiegomcon')) {
+                      event.preventDefault();
+                      event.stopImmediatePropagation();
+                    }
+                  } catch (err) {}
+                }, true);
+              }
+            `,
+          }}
+        />
+      </head>
+      <body
+        suppressHydrationWarning
+        className="flex min-h-full flex-col overflow-x-hidden bg-zinc-950 text-zinc-100"
+      >
         <SerwistProvider swUrl="/serwist/sw.js">
           <Providers>
             <Suspense fallback={<HeaderFallback />}>
